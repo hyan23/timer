@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="renderer" content="webkit" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>有效工作时间追踪</title>
+    <title>工作学习计时器</title>
     <!-- https://icons8.com/license -->
     <link rel="icon" href="https://png.icons8.com/ultraviolet/50/000000/clock.png" type="image/x-icon" />
 
@@ -73,13 +73,14 @@
 <body>
     <div class="sticker" style="float: left;">
         <div class="title">
-            <div class="app-name">有效工作时间追踪</div>
+            <div class="app-name">工作学习计时器</div>
             <div class="author">作者:
                 <a href="https://github.com/hyan23" target="_blank">@hyan23</a>
             </div>
         </div>
         <div class="tips">
-            <p>这个追踪器可以用来追踪您一天的有效工作(学习)时间, 在您进入状态时, 启动计时功能, 暂时离开时, 可以暂停计时功能, 了解自己每天花了多少时间在'有用'的事上, 可以帮助您更有效地管理和利用时间, 这追踪器的功能有:</p>
+            <p>这个计时器可以用来记录您一天有效的工作(学习)时间. 在您进入状态时, 启动计时功能, 暂时离开时, 可以暂停计时功能. 了解自己每天花了多少时间在'有用'的事上, 可以帮助您更有效地管理和利用时间,
+                这计时器的功能有:</p>
             <li>通过敲击键盘上的'回车'键, 可便捷地启动和暂停计时器; </li>
             <li>您可以将指针指向计时器的'时'、'分'、'秒'、'百分秒'上, 向上或向下滚动鼠标滚轮, 随意增长或减少已流逝的时间(目前仅支持PC); </li>
             <li>您可以离开本页面, 计时器将以秒为单位进行计时, 不会影响您浏览器的性能; </li>
@@ -93,7 +94,7 @@
             <p>番茄工作法简介</p>
         </div>
         <div class="tips">
-            <p>本追踪器现已支持番茄工作法．</p>
+            <p>本计时器现已支持番茄工作法．</p>
             <p>勾选"启用番茄工作法"复选框来启用番茄工作法, 每专注25分钟, 可以收获一个番茄. 短暂休息后, 进入下一个番茄. 以下操作将打断一个番茄: 1. 暂停计时器; 2. 关闭计时器.</p>
             <p>使用"发送通知"功能, 您的浏览必须支持"Notification(通知)"功能, 该提示首次弹出后, 请选择"允许". </p>
         </div>
@@ -109,7 +110,8 @@
 
         <div class="controls">
             <button id="start_button" onfocus="this.blur();">开始</button>
-            <button id="reset_button" onclick="if (confirm('确定重置吗?')) { reset_timer(); }" onfocus="this.blur();">重置</button>
+            <button id="reset_button" onclick="if (confirm('确定重置吗?')) { reset_timer(); }"
+                onfocus="this.blur();">重置</button>
         </div>
         <div class="controls">
             <input id="enabled" type="checkbox" onchange="enable_tomato();">启用番茄工作法</input>
