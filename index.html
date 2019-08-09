@@ -3,7 +3,6 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="renderer" content="webkit" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -109,15 +108,15 @@
         </div>
 
         <div class="controls">
-            <button id="start_button" onfocus="this.blur();">开始</button>
-            <button id="reset_button" onclick="if (confirm('确定重置吗?')) { reset_timer(); }"
+            <button id="start_button" onclick="on_resume();" onfocus="this.blur();">开始</button>
+            <button id="reset_button" onclick="if (confirm('确定重置吗?')) { on_reset(); }"
                 onfocus="this.blur();">重置</button>
         </div>
         <div class="controls">
-            <input id="enabled" type="checkbox" onchange="enable_tomato();">启用番茄工作法</input>
-            <input id="automated" type="checkbox" onchange="enable_auto();">收获番茄自动暂停</input>
-            <input id="sound" type="checkbox" onchange="toggle_sound();">提示音</input>
-            <input id="notification" type="checkbox" onchange="toggle_notification();">发送通知</input>
+            <input id="enabled" type="checkbox" onchange="enable_pomodoro();">启用番茄工作法
+            <input id="automated" type="checkbox" onchange="enable_auto();">收获番茄自动暂停
+            <input id="sound" type="checkbox" onchange="toggle_sound();">提示音
+            <input id="notification" type="checkbox" onchange="toggle_notification();">发送通知
         </div>
 
         <div>
@@ -141,40 +140,105 @@
     </audio>
 
     <script>
+
+        var start_button = null;        // valid during life time
+
+
+
+        /*********************************************************************/
+        //                           common
+        /*********************************************************************/
+
+        //https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
+        function setCookie(name, value, daysOfValidity) {
+            if (daysOfValidity === undefined) {
+                document.cookie = name + '=' + encodeURIComponent(value);
+            } else {
+                var expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + daysOfValidity);
+                document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + expiryDate.toGMTString();
+            }
+        }
+
+        function getCookie(name) {
+            if (document.cookie.length > 0) {
+                start = -1;
+                while (true) {
+                    start = document.cookie.indexOf(name + '=', start + 1);
+                    if (start == -1 || start == 0) {
+                        break;
+                    }
+                    if (start > 0) {
+                        var ch = document.cookie.charAt(start - 1);
+                        if (ch == ';' || /\s/.test(ch)) {
+                            break;
+                        }
+                    }
+                }
+                if (start != -1) {
+                    start += name.length + 1;
+                    end = document.cookie.indexOf(';', start);
+                    if (end == -1) {
+                        end = document.cookie.length;
+                    }
+                    return decodeURIComponent(document.cookie.substring(start, end));
+                }
+            }
+            return '';
+        }
+
+        function isDocumentHidden() {
+            var propName = null;
+            if ('hidden' in document) {
+                propName = 'hidden';
+            }
+            for (var prefix in ['webkit', 'ms', 'mos', 'o']) {
+                var test = prefix + 'Hidden';
+                if (test in document) {
+                    propName = test;
+                    break;
+                }
+            }
+            if (propName != null) {
+                return document[propName];
+            }
+            return false;
+        }
+
+        function playSound(id) {
+            try {
+                document.getElementById(id).play();
+            } catch (e) {
+            }
+        }
+
+        function showMsg(title, message) {
+            if (window.Notification && Notification.permission !== 'denied') {
+                Notification.requestPermission(
+                    function (status) {
+                        new Notification(title, { body: message });
+                    });
+            }
+        }
+
+
+
+        /*********************************************************************/
+        //                           timer
+        /*********************************************************************/
+
         var h = 0;
         var m = 0;
         var s = 0;
         var c = 0;
 
-        var id = -1;
-        var pointed = '';
-        var start_button = null;
-
-        var hold_time = null;
-        var h1 = 0;
-        var m1 = 0;
-        var s1 = 0;
-        var c1 = 0;
-
-        var status = 0;
-        var title = '';
-
-        var enabled = false;
-        var tomato = 0;
-        var automated = false;
-        var begin = null;
-        var sound = false;
-        var notification = false;
-
-        const HALT = 0;
-        const PAUSE = 1;
-        const RUNNING = 2;
 
         function decrease_hour() {
             if (h > 0) {
                 h--;
             }
         }
+
         function increase_hour() {
             if (h < 23) {
                 h++;
@@ -192,6 +256,7 @@
                 }
             }
         }
+
         function increase_minute() {
             m++;
             if (m == 60) {
@@ -211,13 +276,14 @@
                 }
             }
         }
+
         function increase_second() {
             s++;
             if (s == 60) {
                 s = 0;
                 increase_minute();
             }
-            save_timer();
+            save_all();
         }
 
         function decrease_centisecond() {
@@ -231,6 +297,7 @@
                 }
             }
         }
+
         function increase_centisecond() {
             c++;
             if (c == 100) {
@@ -239,25 +306,24 @@
             }
         }
 
-        function increase_tomato() {
-            if (enabled) {
-                tomato++;
-            }
-        }
-        function decrease_tomato() {
-            if (enabled && tomato > 0) {
-                tomato--;
-            }
-        }
+        // timer correction
+        var hold_time = null;   // Date
+        var h1 = 0;
+        var m1 = 0;
+        var s1 = 0;
+        var c1 = 0;
 
-        function hold_timer() {
+        function take_snapshot() {
+            hold_time = new Date();
             h1 = h;
             m1 = m;
             s1 = s;
-            hold_time = new Date();
         }
 
         function correct_timer() {
+            if (hold_time == null) {
+                return;
+            }
             var now = new Date();
             var t1 = ~~((now - hold_time) / 10);
             var t2 = h * 60 * 60 * 100 + m * 60 * 100 + s * 100 + c -
@@ -269,188 +335,20 @@
             }
         }
 
-        function hiddenProperty() {
-            if ('hidden' in document) {
-                return 'hidden';
-            }
-            for (var prefix in ['webkit', 'ms', 'mos', 'o']) {
-                var property = prefix + 'Hidden';
-                if (property in document) {
-                    return property;
-                }
-            }
-            return null;
-        }
-
-        function documentHidden() {
-            var property = hiddenProperty();
-            if (property) {
-                return document[property];
-            }
-            return false;
-        }
-
-        function tomato_progress() {
-            if (enabled && status == RUNNING) {
-                return ~~((new Date() - begin) / 1000 / 60 / 25 * 100);
-            } else {
-                return 0;
-            }
-        }
-
         function clock_timer() {
             increase_centisecond();
-            if (c == 0) {
+            if (c == 0 || isDocumentHidden()) {
                 correct_timer();
             }
-            if (documentHidden() || c == 0) {
-                if (tomato_progress() == 100) {
-                    if (enabled) {
-                        get_tomato();
-                    }
-                }
-            }
-            update_timer();
-        }
-
-        function change_subtitle(subtitle) {
-            document.title = title + '(' + subtitle + ')';
-        }
-
-        function resume_timer() {
-            id = setInterval(clock_timer, 10);
-            start_button.onclick = pause_timer;
-            start_button.innerHTML = '暂停';
-            change_subtitle('运行中');
-            hold_timer();
-            begin = new Date();
-            status = RUNNING;
-            save_timer();
-        }
-
-        function pause_timer() {
-            if (id != -1) {
-                clearInterval(id);
-            }
-            start_button.onclick = resume_timer;
-            start_button.innerHTML = '继续';
-            change_subtitle('已暂停');
-            hold_timer();
-            begin = new Date();
-            status = PAUSE;
-            save_timer();
-            update_timer();
         }
 
         function reset_timer() {
-            pause_timer();
-            start_button.innerHTML = '开始';
-            change_subtitle('已停止');
-            h = 0;
-            m = 0;
-            s = 0;
-            c = 0;
-            tomato = 0;
-            status = HALT;
-            save_timer();
-            update_timer();
+            h = m = s = c = 0;
+            h1 = m1 = s1 = c1 = 0;
+            hold_time = null;
         }
 
-        function format_text(id, number) {
-            if (number < 10) {
-                number = '0' + number;
-            }
-            document.getElementById(id).innerHTML = number;
-        }
-
-        function update_timer() {
-            format_text('h', h);
-            format_text('m', m);
-            format_text('s', s);
-            format_text('c', c);
-            format_text('tomato', tomato);
-            document.getElementById('progress-bar').value = tomato_progress();
-        }
-
-        function mouseover(id) {
-            pointed = id;
-        }
-        function mouseout() {
-            pointed = 0;
-        }
-
-        function onmousewheel(e) {
-            if (!pointed) {
-                return;
-            }
-            var increase_timer = {
-                'h': increase_hour,
-                'm': increase_minute,
-                's': increase_second,
-                'c': increase_centisecond,
-                't': increase_tomato
-            };
-            var decrease_timer = {
-                'h': decrease_hour,
-                'm': decrease_minute,
-                's': decrease_second,
-                'c': decrease_centisecond,
-                't': decrease_tomato
-            }
-            e = e || window.event;
-            if (e.detail) {
-                if (e.detail < 0) {
-                    increase_timer[pointed]();
-                } else {
-                    decrease_timer[pointed]();
-                }
-            } else if (e.wheelDelta) {
-                if (e.wheelDelta > 0) {
-                    increase_timer[pointed]();
-                } else {
-                    decrease_timer[pointed]();
-                }
-            }
-            if (status == HALT) {
-                pause_timer();
-            }
-            hold_timer();
-            save_timer();
-            update_timer();
-        }
-
-        function setCookie(name, value, expiredays) {
-            var expire = new Date();
-            expire.setDate(expire.getDate() + expiredays);
-            document.cookie = name + '=' + escape(value) +
-                (expiredays == null ? '' : ';expires=' + expire.toGMTString());
-        }
-        function getCookie(name) {
-            if (document.cookie.length > 0) {
-                // time _time
-                start = document.cookie.indexOf(name + '=');
-                if (start != -1) {
-                    start += name.length + 1;
-                    end = document.cookie.indexOf(';', start);
-                    if (end == -1) {
-                        end = document.cookie.length;
-                    }
-                    return unescape(document.cookie.substring(start, end));
-                }
-            }
-            return '';
-        }
-
-        function save_timer() {
-            setCookie('time', '' + h + ',' + m + ',' + s + ',' + c, 7);
-            setCookie('gmt_string', (new Date()).toGMTString(), 7);
-            setCookie('status', '' + status, 7);
-            setCookie('str_tomato', '' + tomato + ',' +
-                Number(enabled) + ',' + Number(automated) + ',' +
-                Number(sound) + ',' + Number(notification), 7);
-        }
-
-        function read_timer() {
+        function get_timer_cookie() {
             var str_time = getCookie('time');
             if (str_time.length > 0) {
                 var time = str_time.split(',');
@@ -459,11 +357,58 @@
                     m = parseInt(time[1]);
                     s = parseInt(time[2]);
                     c = parseInt(time[3]);
-                    start_button.innerHTML = '继续';
                 } catch (e) {
                     h = m = s = c = 0;
                 }
+            } else {
+                h = m = s = c = 0;
             }
+        }
+
+        function set_timer_cookie() {
+            setCookie('time', '' + h + ',' + m + ',' + s + ',' + c, 7);
+        }
+
+
+
+        /*********************************************************************/
+        //                             pomodoro
+        /*********************************************************************/
+
+        var enabled = false;        // enable pomodoro
+        var begin = null;           // when a new pomodoro clock was began
+        var tomato = 0;             // tomato count
+        var automated = false;      // automatically pause once gets tomato
+        var sound = false;          // enables sounds
+        var notification = false;   // enables notifications
+
+        function increase_tomato() {
+            tomato++;
+        }
+
+        function decrease_tomato() {
+            if (tomato > 0) {
+                tomato--;
+            }
+        }
+
+        function get_progress() {
+            if (enabled && begin != null) {
+                return ~~((new Date() - begin) / 1000 / 60 / 25 * 100);
+            } else {
+                return 0;
+            }
+        }
+
+        function start_new() {
+            begin = new Date();
+        }
+
+        function reset_pomodoro() {
+            tomato = 0;
+        }
+
+        function get_pomodoro_cookie() {
             var str_tomato = getCookie('str_tomato');
             if (str_tomato.length > 0) {
                 var array = str_tomato.split(',');
@@ -480,12 +425,216 @@
                     sound = false;
                     notification = false;
                 }
-                document.getElementById('tomato').innerHTML = tomato;
-                document.getElementById('enabled').checked = enabled;
-                document.getElementById('automated').checked = automated;
-                document.getElementById('sound').checked = sound;
-                document.getElementById('notification').checked = notification;
+            } else {
+                tomato = 0;
+                enabled = false;
+                automated = false;
+                sound = false;
+                notification = false;
             }
+        }
+
+        function set_pomodoro_cookie() {
+            setCookie('str_tomato', '' + tomato + ',' +
+                Number(enabled) + ',' + Number(automated) + ',' +
+                Number(sound) + ',' + Number(notification), 7);
+        }
+
+
+
+        /*********************************************************************/
+        //                             ui
+        /*********************************************************************/
+
+        var original_title = '';    // defined in <head><title></title></head>
+        var title = '';             // original_title plus subtitle
+
+
+        function change_subtitle(subtitle) {
+            document.title = title = original_title + '(' + subtitle + ')';
+        }
+
+        function scroll_title() {
+            document.title = document.title.substr(1) +
+                (document.title == title ? ' ' : '') +
+                document.title.substr(0, 1);
+        }
+
+        function format_text(id, number) {
+            if (number < 10) {
+                number = '0' + number;
+            }
+            document.getElementById(id).innerHTML = number;
+        }
+
+        function get_ui_cookie() {
+            original_title = title = document.title;
+            setInterval(scroll_title, 1000);
+        }
+
+        function set_ui_cookie() {
+            document.title = original_title;
+        }
+
+
+
+        /*********************************************************************/
+        //                           implementation
+        /*********************************************************************/
+
+        var id = -1;                // returned by setInterval
+        var status = 0;             // HALT, PAUSE, or RUNNING
+
+        const HALT = 0;
+        const PAUSE = 1;
+        const RUNNING = 2;
+
+
+        function on_interval() {
+            clock_timer();
+            if (enabled) {
+                get_tomato();
+            }
+            save_all();
+            update_html();
+        }
+
+        function on_resume() {
+            if (id != -1) {
+                clearInterval(id);
+            }
+            id = setInterval(on_interval, 10);
+            start_button.onclick = on_pause;
+            start_button.innerHTML = '暂停';
+            change_subtitle('运行中');
+            status = RUNNING;
+
+            take_snapshot();
+            if (enabled) {
+                start_new();
+            }
+            save_all();
+            update_html();
+        }
+
+        function on_pause() {
+            if (id != -1) {
+                clearInterval(id);
+            }
+            start_button.onclick = on_resume;
+            start_button.innerHTML = '继续';
+            change_subtitle('已暂停');
+            status = PAUSE;
+
+            if (enabled) {
+                start_new();
+            }
+            save_all();
+            update_html();
+        }
+
+        function on_reset() {
+            on_pause();
+            start_button.innerHTML = '开始';
+            change_subtitle('已停止');
+            status = HALT;
+
+            reset_timer();
+            reset_pomodoro();
+
+            save_all();
+            update_html();
+        }
+
+        function get_tomato() {
+            if (get_progress() < 100) {
+                return;
+            }
+            increase_tomato();
+            if (automated) {
+                on_pause();
+            } else {
+                start_new();
+            }
+            if (sound) {
+                playSound('hint');
+            }
+            if (notification) {
+                showMsg('已收获今天的第' + tomato + '颗番茄!',
+                    automated ? '已经暂停计时.' :
+                        '已开始新的番茄, 您可回到计时器页面暂停休息.');
+            }
+        }
+
+        function save_all() {
+            set_timer_cookie();
+            set_pomodoro_cookie();
+            set_impl_cookie();
+        }
+
+        // for updating only necessary areas
+        h2 = undefined;
+        m2 = undefined;
+        s2 = undefined;
+        c2 = undefined;
+        tomato2 = undefined;
+        enabled2 = undefined;
+        automated2 = undefined;
+        sound2 = undefined;
+        notification2 = undefined;
+        progress2 = undefined;
+
+        function update_html() {
+            if (h2 !== h) {
+                format_text('h', h);
+                h2 = h;
+            }
+            if (m2 !== m) {
+                format_text('m', m);
+                m2 = m;
+            }
+            if (s2 !== s) {
+                format_text('s', s);
+                s2 = s;
+            }
+            if (c2 !== c) {
+                format_text('c', c);
+                c2 = c;
+            }
+
+            if (enabled2 !== enabled) {
+                document.getElementById('enabled').checked = enabled;
+                enabled2 = enabled;
+            }
+            if (tomato2 !== tomato) {
+                format_text('tomato', tomato);
+                tomato2 = tomato;
+            }
+            if (automated2 !== automated) {
+                document.getElementById('automated').checked = automated;
+                automated2 = automated;
+            }
+            if (sound2 !== sound) {
+                document.getElementById('sound').checked = sound;
+                sound2 = sound;
+            }
+            if (notification2 !== notification) {
+                document.getElementById('notification').checked = notification;
+                notification2 = notification;
+            }
+            var progress = get_progress();
+            if (progress2 !== progress) {
+                document.getElementById('progress-bar').value = progress;
+                progress2 = progress;
+            }
+        }
+
+        function set_impl_cookie() {
+            setCookie('gmt_string', (new Date()).toGMTString(), 7);
+            setCookie('status', '' + status, 7);
+        }
+
+        function get_impl_cookie() {
             var str_status = getCookie('status');
             if (str_status.length > 0) {
                 try {
@@ -493,11 +642,14 @@
                 } catch (e) {
                     status = HALT;
                 }
+            } else {
+                status = HALT;
             }
+
             if (status == HALT) {
-                reset_timer();
+                on_reset();
             } else if (status == PAUSE) {
-                pause_timer();
+                on_pause();
             } else if (status == RUNNING) {
                 var gmt_string = getCookie('gmt_string');
                 if (gmt_string.length > 0) {
@@ -507,44 +659,87 @@
                         for (var i = 0; i < seconds; i++) {
                             increase_second();
                         }
-                        start_button.onclick();
+                        on_resume();
                     } catch (e) {
-                        pause_timer();
+                        on_pause();
                     }
                 }
             }
         }
 
-        function play_sound(id) {
-            try {
-                document.getElementById(id).play();
-            } catch (e) {
+
+
+        /*********************************************************************/
+        //                           callbacks
+        /*********************************************************************/
+
+        var pointed = null;     // mouse scrolls on this specified element
+
+
+        function mouseover(id) {
+            pointed = id;
+        }
+
+        function mouseout() {
+            pointed = null;
+        }
+
+        function onmousewheel(e) {
+            if (pointed == null) {
                 return;
             }
-        }
 
-        function send_notification(title, message) {
-            if (window.Notification && Notification.permission !== 'denied') {
-                Notification.requestPermission(function (status) {
-                    new Notification(title, { body: message });
-                });
+            var increase_number = {
+                'h': increase_hour,
+                'm': increase_minute,
+                's': increase_second,
+                'c': increase_centisecond,
+                't': increase_tomato
+            };
+            var decrease_number = {
+                'h': decrease_hour,
+                'm': decrease_minute,
+                's': decrease_second,
+                'c': decrease_centisecond,
+                't': decrease_tomato
             }
+
+            e = e || window.event;
+            if (e.detail) {
+                if (e.detail < 0) {
+                    increase_number[pointed]();
+                } else {
+                    decrease_number[pointed]();
+                }
+            } else if (e.wheelDelta) {
+                if (e.wheelDelta > 0) {
+                    increase_number[pointed]();
+                } else {
+                    decrease_number[pointed]();
+                }
+            }
+
+            if (status == HALT) {
+                on_pause();
+            }
+            take_snapshot();
+            save_all();
+            update_html();
         }
 
-        function enable_tomato() {
+        function enable_pomodoro() {
             if (document.getElementById('enabled').checked) {
                 enabled = true;
-                begin = new Date();
             } else {
                 enabled = false;
             }
-            update_timer();
-            save_timer();
+            start_new();
+            save_all();
         }
 
         function enable_auto() {
             automated = document.getElementById('automated').checked;
-            save_timer();
+            save_all();
         }
 
         function toggle_sound() {
@@ -553,13 +748,13 @@
                     sound = true;
                 } else {
                     alert('很抱歉, 您的浏览器不支持播放声音.');
-                    document.getElementById('sound').checked = false;
                     sound = false;
                 }
             } else {
                 sound = false;
             }
-            save_timer();
+            update_html();
+            save_all();
         }
 
         function toggle_notification() {
@@ -568,42 +763,25 @@
                     notification = true;
                 } else {
                     alert('无法开启通知, 请检查权限.');
-                    document.getElementById('notification').checked = false;
                     notification = false;
                 }
             } else {
                 notification = false;
             }
-            save_timer();
+            update_html();
+            save_all();
         }
 
-        function get_tomato() {
-            tomato++;
-            if (notification) {
-                send_notification('已收获今天的第' + tomato + '颗番茄!',
-                    automated ? '已经暂停计时.' :
-                        '已开始新的番茄, 您可回到计时器页面暂停休息.');
-            }
-            if (sound) {
-                play_sound('hint');
-            }
-            if (automated) {
-                pause_timer();
-            } else {
-                begin = new Date();
-            }
-        }
 
-        function scroll_title() {
-            document.title = document.title.substr(1) +
-                (document.title[0] == title[0] ? ' ' : '') +
-                document.title.substr(0, 1);
-        }
+
+        /*********************************************************************/
+        //                           top level codes
+        /*********************************************************************/
+
 
         window.onload = function () {
-            title = document.title;
             start_button = document.getElementById('start_button');
-            start_button.onclick = resume_timer;
+
             if (document.addEventListener) {
                 document.addEventListener('DOMMouseScroll', onmousewheel, false);
             }
@@ -615,13 +793,24 @@
                     start_button.onclick();
                 }
             }
-            read_timer();
-            setInterval(scroll_title, 1000);
+
+            get_ui_cookie();
+            get_timer_cookie();
+            get_pomodoro_cookie();
+            get_impl_cookie();
         }
 
         window.onbeforeunload = function () {
-            save_timer();
-            document.title = title;
+            try {
+                set_ui_cookie();
+                set_timer_cookie();
+                set_pomodoro_cookie();
+                set_impl_cookie();
+            }
+            catch (e) {
+                console.log(e);
+            }
+
             if (status == RUNNING) {
                 return '离开页面? 此时离开将打断一个番茄钟.';
             } else {
