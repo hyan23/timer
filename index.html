@@ -231,7 +231,7 @@
 
         function registerConfirmation() {
             window.onbeforeunload = function () {
-                return '离开页面? 此时离开将打断一个番茄钟.';
+                return '离开页面? 此时离开将打断一个番茄钟。';
             }
         }
 
@@ -530,8 +530,8 @@
             }
             if (notification) {
                 showMsg('已收获今天的第' + tomato + '颗番茄!',
-                    automated ? '已经暂停计时.' :
-                        '已开始新的番茄, 您可回到计时器页面暂停休息.');
+                    automated ? '已经暂停计时。' :
+                        '已开始新的番茄, 您可回到计时器页面暂停休息。');
             }
         }
 
@@ -780,7 +780,7 @@
                 if (!!document.createElement('audio').canPlayType) {
                     sound = true;
                 } else {
-                    alert('很抱歉, 您的浏览器不支持播放声音.');
+                    alert('很抱歉, 您的浏览器不支持播放声音。');
                     sound = false;
                 }
             } else {
@@ -795,7 +795,7 @@
                 if (window.Notification && Notification.permission !== 'denied') {
                     notification = true;
                 } else {
-                    alert('无法开启通知, 请检查权限.');
+                    alert('无法开启通知, 请检查权限。');
                     notification = false;
                 }
             } else {
