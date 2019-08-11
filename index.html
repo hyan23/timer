@@ -14,7 +14,7 @@
         body {
             -webkit-font-smoothing: antialiased;
             font-family: Helvetica Neue, Helvetica, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
-            background: #c1ffc1;
+            background: #f7ad24;
             margin: 0;
         }
 
@@ -78,13 +78,13 @@
             </div>
         </div>
         <div class="tips">
-            <p>这个计时器可以用来记录您一天有效的工作(学习)时间. 在您进入状态时, 启动计时功能, 暂时离开时, 可以暂停计时功能. 了解自己每天花了多少时间在'有用'的事上, 可以帮助您更有效地管理和利用时间,
-                这计时器的功能有:</p>
-            <li>通过敲击键盘上的'回车'键, 可便捷地启动和暂停计时器; </li>
-            <li>您可以将指针指向计时器的'时'、'分'、'秒'、'百分秒'上, 向上或向下滚动鼠标滚轮, 随意增长或减少已流逝的时间(目前仅支持PC); </li>
+            <p>这个计时器可以用来记录您一天有效的工作(学习)时间。当您进入状态时, 启动计时功能, 暂时离开时, 可以暂停计时功能。
+                了解自己每天花了多少时间在 “有用” 的事上, 可以帮助您更有效地跟踪和利用时间。这计时器的功能有: </p>
+            <li>通过敲击键盘上的 “回车” 键, 可便捷地启动和暂停计时器; </li>
+            <li>您可以将指针指向计时器的 ‘时’、‘分’、‘秒’ 或 “百分秒” 上, 向上或向下滚动鼠标滚轮, 随意增长或减少已流逝的时间(目前仅支持PC); </li>
             <li>您可以离开本页面, 计时器将以秒为单位进行计时, 不会影响您浏览器的性能; </li>
-            <li>您也可以关闭此页面, 关闭前若正在计时, 在您回来时会计算关闭的时间, 计时不会间断; 关闭时若已暂停, 计时器会记住暂停前的时间; </li>
-            <li>本计时器依靠当前浏览器的 cookie 工作, 若您在其他浏览器打开本计时器, 计时的进度不会转移到那个浏览器上. </li>
+            <li>您也可以关闭此页面, 关闭前若正在计时, 在您回来时会自动累加关闭的间隔时间, 计时不会间断; 关闭时若已暂停, 计时器会记住暂停前的时间; </li>
+            <li>本计时器依靠当前浏览器的 cookie 工作, 若您在其他浏览器打开本计时器, 计时的进度不会转移到那个浏览器上。</li>
         </div>
     </div>
 
@@ -93,9 +93,11 @@
             <p>番茄工作法简介</p>
         </div>
         <div class="tips">
-            <p>本计时器现已支持番茄工作法．</p>
-            <p>勾选"启用番茄工作法"复选框来启用番茄工作法, 每专注25分钟, 可以收获一个番茄. 短暂休息后, 进入下一个番茄. 以下操作将打断一个番茄: 1. 暂停计时器; 2. 关闭计时器.</p>
-            <p>使用"发送通知"功能, 您的浏览必须支持"Notification(通知)"功能, 该提示首次弹出后, 请选择"允许". </p>
+            <p>本计时器现已支持番茄工作法。</p>
+            <p>勾选 “启用番茄工作法” 复选框来启用番茄工作法。
+                每专注25分钟, 可以收获一个番茄。短暂休息后(一般为5分钟), 进入下一个番茄(阶段)。
+                以下操作将打断一个番茄: 1. 暂停计时器; 2. 关闭计时器。</p>
+            <p>使用 “发送通知” 功能, 您的浏览必须支持 "Notification(通知)" 功能, 该提示首次弹出后, 请选择 “允许”。</p>
         </div>
     </div>
 
@@ -107,12 +109,11 @@
             <b id="c" onmouseover="mouseover('c');" onmouseout="mouseout();">00</b>
         </div>
 
-        <div class="controls">
-            <button id="start_button" onclick="on_resume();" onfocus="this.blur();">开始</button>
-            <button id="reset_button" onclick="if (confirm('确定重置吗?')) { on_reset(); }"
-                onfocus="this.blur();">重置</button>
+        <div class="controls" onfocus="this.blur();">
+            <button id="start_button">开始</button>
+            <button id="reset_button" onclick="if (confirm('确定重置吗?')) { on_reset(); }">重置</button>
         </div>
-        <div class="controls">
+        <div class="controls" onfocus="this.blur();">
             <input id="enabled" type="checkbox" onchange="enable_pomodoro();">启用番茄工作法
             <input id="automated" type="checkbox" onchange="enable_auto();">收获番茄自动暂停
             <input id="sound" type="checkbox" onchange="toggle_sound();">提示音
@@ -138,6 +139,11 @@
         <source src="button-3.ogg" />
         <source src="button-3.wav" />
     </audio>
+    <audio id="auto-pause" preload="auto">
+        <source src="button-6.mp3" />
+        <source src="button-6.ogg" />
+        <source src="button-6.wav" />
+    </audio>
 
     <script>
 
@@ -162,9 +168,10 @@
 
         function getCookie(name) {
             if (document.cookie.length > 0) {
-                start = -1;
+                var start = 0;
+                var step = 0;
                 while (true) {
-                    start = document.cookie.indexOf(name + '=', start + 1);
+                    start = document.cookie.indexOf(name + '=', start + step);
                     if (start == -1 || start == 0) {
                         break;
                     }
@@ -173,6 +180,7 @@
                         if (ch == ';' || /\s/.test(ch)) {
                             break;
                         }
+                        step = (name + '=').length;
                     }
                 }
                 if (start != -1) {
@@ -184,7 +192,7 @@
                     return decodeURIComponent(document.cookie.substring(start, end));
                 }
             }
-            return '';
+            return null;
         }
 
         function isDocumentHidden() {
@@ -219,6 +227,20 @@
                         new Notification(title, { body: message });
                     });
             }
+        }
+
+        function registerConfirmation() {
+            window.onbeforeunload = function () {
+                return '离开页面? 此时离开将打断一个番茄钟.';
+            }
+        }
+
+        function cancelConfirmation() {
+            window.onbeforeunload = null;
+        }
+
+        function chgBackground(color) {
+            document.body.style.background = color;
         }
 
 
@@ -283,7 +305,6 @@
                 s = 0;
                 increase_minute();
             }
-            save_all();
         }
 
         function decrease_centisecond() {
@@ -307,25 +328,25 @@
         }
 
         // timer correction
-        var hold_time = null;   // Date
+        var gmt = null;   // Date
         var h1 = 0;
         var m1 = 0;
         var s1 = 0;
         var c1 = 0;
 
         function take_snapshot() {
-            hold_time = new Date();
+            gmt = new Date();
             h1 = h;
             m1 = m;
             s1 = s;
         }
 
         function correct_timer() {
-            if (hold_time == null) {
+            if (gmt == null) {
                 return;
             }
             var now = new Date();
-            var t1 = ~~((now - hold_time) / 10);
+            var t1 = ~~((now - gmt) / 10);
             var t2 = h * 60 * 60 * 100 + m * 60 * 100 + s * 100 + c -
                 (h1 * 60 * 60 * 100 + m1 * 60 * 100 + s1 * 100 + c1);
             if (t1 - t2 > 2 * 100) {
@@ -345,12 +366,12 @@
         function reset_timer() {
             h = m = s = c = 0;
             h1 = m1 = s1 = c1 = 0;
-            hold_time = null;
+            gmt = null;
         }
 
         function get_timer_cookie() {
             var str_time = getCookie('time');
-            if (str_time.length > 0) {
+            if (str_time != null) {
                 var time = str_time.split(',');
                 try {
                     h = parseInt(time[0]);
@@ -358,10 +379,10 @@
                     s = parseInt(time[2]);
                     c = parseInt(time[3]);
                 } catch (e) {
-                    h = m = s = c = 0;
+                    reset_timer();
                 }
             } else {
-                h = m = s = c = 0;
+                reset_timer();
             }
         }
 
@@ -379,8 +400,8 @@
         var begin = null;           // when a new pomodoro clock was began
         var tomato = 0;             // tomato count
         var automated = false;      // automatically pause once gets tomato
-        var sound = false;          // enables sounds
-        var notification = false;   // enables notifications
+        var sound = false;          // enable sounds
+        var notification = false;   // enable notifications
 
         function increase_tomato() {
             tomato++;
@@ -405,12 +426,13 @@
         }
 
         function reset_pomodoro() {
+            begin = null;
             tomato = 0;
         }
 
         function get_pomodoro_cookie() {
             var str_tomato = getCookie('str_tomato');
-            if (str_tomato.length > 0) {
+            if (str_tomato != null) {
                 var array = str_tomato.split(',');
                 try {
                     tomato = parseInt(array[0]);
@@ -419,14 +441,14 @@
                     sound = Boolean(parseInt(array[3]));
                     notification = Boolean(parseInt(array[4]));
                 } catch (e) {
-                    tomato = 0;
+                    reset_pomodoro();
                     enabled = false;
                     automated = false;
                     sound = false;
                     notification = false;
                 }
             } else {
-                tomato = 0;
+                reset_pomodoro();
                 enabled = false;
                 automated = false;
                 sound = false;
@@ -460,7 +482,7 @@
                 document.title.substr(0, 1);
         }
 
-        function format_text(id, number) {
+        function format_number(id, number) {
             if (number < 10) {
                 number = '0' + number;
             }
@@ -490,74 +512,21 @@
         const RUNNING = 2;
 
 
-        function on_interval() {
-            clock_timer();
-            if (enabled) {
-                get_tomato();
-            }
-            save_all();
-            update_html();
-        }
-
-        function on_resume() {
-            if (id != -1) {
-                clearInterval(id);
-            }
-            id = setInterval(on_interval, 10);
-            start_button.onclick = on_pause;
-            start_button.innerHTML = '暂停';
-            change_subtitle('运行中');
-            status = RUNNING;
-
-            take_snapshot();
-            if (enabled) {
-                start_new();
-            }
-            save_all();
-            update_html();
-        }
-
-        function on_pause() {
-            if (id != -1) {
-                clearInterval(id);
-            }
-            start_button.onclick = on_resume;
-            start_button.innerHTML = '继续';
-            change_subtitle('已暂停');
-            status = PAUSE;
-
-            if (enabled) {
-                start_new();
-            }
-            save_all();
-            update_html();
-        }
-
-        function on_reset() {
-            on_pause();
-            start_button.innerHTML = '开始';
-            change_subtitle('已停止');
-            status = HALT;
-
-            reset_timer();
-            reset_pomodoro();
-
-            save_all();
-            update_html();
-        }
-
         function get_tomato() {
             if (get_progress() < 100) {
                 return;
             }
             increase_tomato();
             if (automated) {
+                if (sound) {
+                    playSound('auto-pause');
+                }
                 on_pause();
             } else {
+                if (sound) {
+                    playSound('hint');
+                }
                 start_new();
-            }
-            if (sound) {
-                playSound('hint');
             }
             if (notification) {
                 showMsg('已收获今天的第' + tomato + '颗番茄!',
@@ -586,19 +555,19 @@
 
         function update_html() {
             if (h2 !== h) {
-                format_text('h', h);
+                format_number('h', h);
                 h2 = h;
             }
             if (m2 !== m) {
-                format_text('m', m);
+                format_number('m', m);
                 m2 = m;
             }
             if (s2 !== s) {
-                format_text('s', s);
+                format_number('s', s);
                 s2 = s;
             }
             if (c2 !== c) {
-                format_text('c', c);
+                format_number('c', c);
                 c2 = c;
             }
 
@@ -607,7 +576,7 @@
                 enabled2 = enabled;
             }
             if (tomato2 !== tomato) {
-                format_text('tomato', tomato);
+                format_number('tomato', tomato);
                 tomato2 = tomato;
             }
             if (automated2 !== automated) {
@@ -629,6 +598,68 @@
             }
         }
 
+        function on_interval() {
+            clock_timer();
+            if (enabled) {
+                get_tomato();
+            }
+            if (c == 0 || isDocumentHidden()) {
+                save_all();
+            }
+            update_html();
+        }
+
+        function on_resume() {
+            if (id != -1) {
+                clearInterval(id);
+            }
+            id = setInterval(on_interval, 10);
+            start_button.onclick = on_pause;
+            start_button.innerHTML = '暂停';
+            change_subtitle('运行中');
+            document.body.style.background = '#c1ffc1';
+            registerConfirmation();
+            status = RUNNING;
+
+            take_snapshot();
+            if (enabled) {
+                start_new();
+            }
+            save_all();
+            update_html();
+        }
+
+        function on_pause() {
+            if (id != -1) {
+                clearInterval(id);
+            }
+            start_button.onclick = on_resume;
+            start_button.innerHTML = '继续';
+            change_subtitle('已暂停');
+            document.body.style.background = '#f7ad24';
+            cancelConfirmation();
+            status = PAUSE;
+
+            if (enabled) {
+                start_new();
+            }
+            save_all();
+            update_html();
+        }
+
+        function on_reset() {
+            on_pause();
+            start_button.innerHTML = '开始';
+            change_subtitle('已停止');
+            status = HALT;
+
+            reset_timer();
+            reset_pomodoro();
+
+            save_all();
+            update_html();
+        }
+
         function set_impl_cookie() {
             setCookie('gmt_string', (new Date()).toGMTString(), 7);
             setCookie('status', '' + status, 7);
@@ -636,7 +667,7 @@
 
         function get_impl_cookie() {
             var str_status = getCookie('status');
-            if (str_status.length > 0) {
+            if (str_status != null) {
                 try {
                     status = parseInt(str_status);
                 } catch (e) {
@@ -652,10 +683,10 @@
                 on_pause();
             } else if (status == RUNNING) {
                 var gmt_string = getCookie('gmt_string');
-                if (gmt_string.length > 0) {
+                if (gmt_string != null) {
                     try {
-                        var hold_time = new Date(gmt_string);
-                        var seconds = ~~((new Date() - hold_time) / 1000);
+                        var gmt = new Date(gmt_string);
+                        var seconds = ~~((new Date() - gmt) / 1000);
                         for (var i = 0; i < seconds; i++) {
                             increase_second();
                         }
@@ -663,6 +694,8 @@
                     } catch (e) {
                         on_pause();
                     }
+                } else {
+                    on_pause();
                 }
             }
         }
@@ -790,7 +823,9 @@
                 e = e || window.event;
                 var keyCode = e.which ? e.which : e.keyCode;
                 if (keyCode == 13) {
-                    start_button.onclick();
+                    if (start_button.onclick) {
+                        start_button.onclick();
+                    }
                 }
             }
 
@@ -800,22 +835,11 @@
             get_impl_cookie();
         }
 
-        window.onbeforeunload = function () {
-            try {
-                set_ui_cookie();
-                set_timer_cookie();
-                set_pomodoro_cookie();
-                set_impl_cookie();
-            }
-            catch (e) {
-                console.log(e);
-            }
-
-            if (status == RUNNING) {
-                return '离开页面? 此时离开将打断一个番茄钟.';
-            } else {
-                return '';
-            }
+        window.onunload = function () {
+            set_ui_cookie();
+            set_timer_cookie();
+            set_pomodoro_cookie();
+            set_impl_cookie();
         }
     </script>
 </body>
