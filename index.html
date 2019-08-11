@@ -617,7 +617,7 @@
             start_button.onclick = on_pause;
             start_button.innerHTML = '暂停';
             change_subtitle('运行中');
-            document.body.style.background = '#c1ffc1';
+            chgBackground('#c1ffc1');
             registerConfirmation();
             status = RUNNING;
 
@@ -636,7 +636,7 @@
             start_button.onclick = on_resume;
             start_button.innerHTML = '继续';
             change_subtitle('已暂停');
-            document.body.style.background = '#f7ad24';
+            chgBackground('#f7ad24');
             cancelConfirmation();
             status = PAUSE;
 
