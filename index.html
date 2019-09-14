@@ -109,11 +109,12 @@
             <b id="c" onmouseover="mouseover('c');" onmouseout="mouseout();">00</b>
         </div>
 
-        <div class="controls" onfocus="this.blur();">
-            <button id="start_button">开始</button>
-            <button id="reset_button" onclick="if (confirm('确定重置吗?')) { on_reset(); }">重置</button>
+        <div class="controls">
+            <button id="start_button" onfocus="this.blur();">开始</button>
+            <button id="reset_button" onfocus="this.blur();"
+                onclick="if (confirm('确定重置吗?')) { on_reset(); }">重置</button>
         </div>
-        <div class="controls" onfocus="this.blur();">
+        <div class="controls">
             <input id="enabled" type="checkbox" onchange="enable_pomodoro();">启用番茄工作法
             <input id="automated" type="checkbox" onchange="enable_auto();">收获番茄自动暂停
             <input id="sound" type="checkbox" onchange="toggle_sound();">提示音
