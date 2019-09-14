@@ -823,10 +823,12 @@
             window.onkeydown = function (e) {
                 e = e || window.event;
                 var keyCode = e.which ? e.which : e.keyCode;
-                if (keyCode == 13) {
+                if (keyCode == 13 || keyCode == 32) {
                     if (start_button.onclick) {
                         start_button.onclick();
                     }
+                } else if (keyCode == 82) {
+                    on_reset();
                 }
             }
 
