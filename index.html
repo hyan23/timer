@@ -110,15 +110,15 @@
         </div>
 
         <div class="controls">
-            <button id="start_button" onfocus="this.blur();">开始</button>
-            <button id="reset_button" onfocus="this.blur();"
+            <button id="start_button" title="热键：“回车” 或 “空格”" onfocus="this.blur();">开始</button>
+            <button id="reset_button" title="热键：'r'" onfocus="this.blur();"
                 onclick="if (confirm('确定重置吗?')) { on_reset(); }">重置</button>
         </div>
         <div class="controls">
-            <input id="enabled" type="checkbox" onchange="enable_pomodoro();">启用番茄工作法
-            <input id="automated" type="checkbox" onchange="enable_auto();">收获番茄自动暂停
-            <input id="sound" type="checkbox" onchange="toggle_sound();">提示音
-            <input id="notification" type="checkbox" onchange="toggle_notification();">发送通知
+            <input id="enabled" type="checkbox" onfocus="this.blur();" onchange="enable_pomodoro();">启用番茄工作法
+            <input id="automated" type="checkbox" onfocus="this.blur();" onchange="enable_auto();">收获番茄自动暂停
+            <input id="sound" type="checkbox" onfocus="this.blur();" onchange="toggle_sound();">提示音
+            <input id="notification" type="checkbox" onfocus="this.blur();" onchange="toggle_notification();">发送通知
         </div>
 
         <div>
